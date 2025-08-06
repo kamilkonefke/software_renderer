@@ -5,7 +5,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void load_obj(const char* path, double** vertex_data_out, int* vertex_size_out, int** index_data_out, int* index_size_out) {
+typedef struct Vertex {
+    double x;
+    double y;
+    double z;
+} Vertex;
+
+typedef struct Point {
+    double x;
+    double y;
+} Point;
+
+static void load_obj(const char* path, double** vertex_buffer, int* vertex_buffer_size, int** index_buffer, int* index_buffer_size) {
     FILE* file = fopen(path, "r");
 
     double* vertex_data = NULL;
@@ -51,15 +62,15 @@ static void load_obj(const char* path, double** vertex_data_out, int* vertex_siz
     }
     fclose(file);
 
-    *vertex_data_out = vertex_data;
-    *vertex_size_out = vertex_size;
-    *index_data_out = index_data;
-    *index_size_out = index_size;
+    *vertex_buffer = vertex_data;
+    *vertex_buffer_size = vertex_size;
+    *index_buffer = index_data;
+    *index_buffer_size = index_size;
 }
 
-static void free_obj(double* vertex_data, int* index_data) {
-    free(vertex_data);
-    free(index_data);
+static void free_obj(double* vertex_buffer, int* index_buffer) {
+    free(vertex_buffer);
+    free(index_buffer);
 }
 
 #endif

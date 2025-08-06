@@ -4,53 +4,42 @@
 
 #include "objl.h"
 
-#define FOV 1
-#define SCALE 35
+#define FOCAL_LENGTH 2
+#define SCALE 30
 
 SDL_Window* window;
 SDL_Renderer* renderer;
 SDL_Surface* surface;
 
-double rot = 0.0;
+double rot = 0.2;
 
-typedef struct Vec3 {
-    double x;
-    double y;
-    double z;
-} Vec3, Vertex;
-
-typedef struct Vec2 {
-    double x;
-    double y;
-} Vec2, Point;
-
-Vec2 perspective(Vertex vertex) {
-    Vec2 this = {};
-    this.x = 64 + (FOV * vertex.x) / (FOV + vertex.z) * SCALE;
-    this.y = 64 + (FOV * vertex.y) / (FOV + vertex.z) * SCALE;
+Point perspective(Vertex vertex) {
+    Point this = {};
+    this.x = 64 + (FOCAL_LENGTH * vertex.x) / (FOCAL_LENGTH + vertex.z) * SCALE;
+    this.y = 64 + (FOCAL_LENGTH * vertex.y) / (FOCAL_LENGTH + vertex.z) * SCALE;
     return this;
 }
 
-Vec3 rotate_x(Vec3 vertex, double rot) {
-    Vec3 this = {};
+Vertex rotate_x(Vertex vertex, double radians) {
+    Vertex this = {};
     this.x = vertex.x;
-    this.y = vertex.y * cos(rot) - vertex.z * sin(rot);
-    this.z = vertex.y * sin(rot) + vertex.z * cos(rot);
+    this.y = vertex.y * cos(radians) - vertex.z * sin(radians);
+    this.z = vertex.y * sin(radians) + vertex.z * cos(radians);
     return this;
 }
 
-Vec3 rotate_y(Vec3 vertex, double rot) {
-    Vec3 this = {};
-    this.x = vertex.x * cos(rot) - vertex.z * sin(rot);
+Vertex rotate_y(Vertex vertex, double radians) {
+    Vertex this = {};
+    this.x = vertex.x * cos(radians) - vertex.z * sin(radians);
     this.y = vertex.y;
-    this.z = vertex.x * sin(rot) + vertex.z * cos(rot);
+    this.z = vertex.x * sin(radians) + vertex.z * cos(radians);
     return this;
 }
 
-Vec3 rotate_z(Vec3 vertex, double rot) {
-    Vec3 this = {};
-    this.x = vertex.x * cos(rot) + vertex.y * sin(rot);
-    this.y = vertex.y * cos(rot) - vertex.x * sin(rot);
+Vertex rotate_z(Vertex vertex, double radians) {
+    Vertex this = {};
+    this.x = vertex.x * cos(radians) + vertex.y * sin(radians);
+    this.y = vertex.y * cos(radians) - vertex.x * sin(radians);
     this.z = vertex.z;
     return this;
 }
@@ -79,26 +68,24 @@ void draw_buffer_indexed(double buffer[], size_t buffer_size, int indicies[], si
 
 int main(int argc, char *argv[]) {
     SDL_Init(SDL_INIT_VIDEO);
-
-    window = SDL_CreateWindow("renderer", 512, 512, SDL_WINDOW_TRANSPARENT | SDL_WINDOW_BORDERLESS);
+    window = SDL_CreateWindow("software renderer", 512, 512, SDL_WINDOW_TRANSPARENT | SDL_WINDOW_BORDERLESS);
     renderer = SDL_CreateRenderer(window, NULL);
     SDL_SetRenderScale(renderer, 4.0, 4.0);
 
     if (argc == 1) {
-        printf("No .obj file.");
+        printf("No .obj file picked.");
         return 1;
     }
 
-    double* vertex_data = NULL;
-    int vertex_size = 0;
+    double* vertex_buffer = NULL;
+    int vertex_buffer_size = 0;
 
-    int* index_data = NULL;
-    int index_size = 0;
+    int* index_buffer = NULL; 
+    int index_buffer_size = 0;
 
-    load_obj(argv[1], &vertex_data, &vertex_size, &index_data, &index_size);
+    load_obj(argv[1], &vertex_buffer, &vertex_buffer_size, &index_buffer, &index_buffer_size);
 
     bool is_running = true;
-
     SDL_Event event;
     while (is_running) {
         while (SDL_PollEvent(&event)) {
@@ -107,27 +94,25 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        rot += 0.02;
-
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
         SDL_RenderClear(renderer);
 
-        for (int i = 0; i < vertex_size; i += 3) {
-            Vertex rv = {vertex_data[i], vertex_data[i+1], vertex_data[i+2]};
+        for (int i = 0; i < vertex_buffer_size; i += 3) {
+            Vertex rv = {vertex_buffer[i], vertex_buffer[i+1], vertex_buffer[i+2]};
             rv = rotate_y(rv, rot);
-            vertex_data[i] = rv.x;
-            vertex_data[i+1] = rv.y;
-            vertex_data[i+2] = rv.z;
+            vertex_buffer[i] = rv.x;
+            vertex_buffer[i+1] = rv.y;
+            vertex_buffer[i+2] = rv.z;
         }
 
-        draw_buffer_indexed(vertex_data, vertex_size, index_data, index_size);
+        draw_buffer_indexed(vertex_buffer, vertex_buffer_size, index_buffer, index_buffer_size);
         SDL_RenderPresent(renderer);
 
         SDL_Delay(50);
     }
 
-    free(vertex_data);
-    free(index_data);
+    free(vertex_buffer);
+    free(index_buffer);
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
